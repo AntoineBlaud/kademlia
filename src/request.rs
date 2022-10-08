@@ -7,8 +7,9 @@ extern crate json;
 
 pub enum TCPExchange {
     Connect,
+    RespConnect,
     Ping,
-    Pong,
+    Notify,
     FindNode,
     FoundNode,
     Store,
@@ -21,8 +22,9 @@ impl fmt::Display for TCPExchange {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             TCPExchange::Connect => write!(f, "Connect"),
+            TCPExchange::RespConnect => write!(f, "RespConnect"),
             TCPExchange::Ping => write!(f, "Ping"),
-            TCPExchange::Pong => write!(f, "Pong"),
+            TCPExchange::Notify => write!(f, "Notify"),
             TCPExchange::FindNode => write!(f, "FindNode"),
             TCPExchange::FoundNode => write!(f, "FoundNode"),
             TCPExchange::Store => write!(f, "Store"),
@@ -33,6 +35,25 @@ impl fmt::Display for TCPExchange {
         }
     }
 }
+
+pub fn tcpexchange_from_string(s: &str) -> TCPExchange {
+    match s {
+        "Connect" => TCPExchange::Connect,
+        "RespConnect" => TCPExchange::RespConnect,
+        "Ping" => TCPExchange::Ping,
+        "Notify" => TCPExchange::Notify,
+        "FindNode" => TCPExchange::FindNode,
+        "FoundNode" => TCPExchange::FoundNode,
+        "Store" => TCPExchange::Store,
+        "Stored" => TCPExchange::Stored,
+        "FindValue" => TCPExchange::FindValue,
+        "FoundValue" => TCPExchange::FoundValue,
+        "Error" => TCPExchange::Error,
+        _ => panic!("Invalid TCPExchange"),
+    }
+}
+
+
 
 
 fn _insert_node_info(json: &mut json::JsonValue, nd_info: &NodeInfo)  {
@@ -46,5 +67,27 @@ pub fn build_new_connection_request(nd_info : &NodeInfo) -> String {
     let mut request = json::JsonValue::new_object();
     _insert_node_info(&mut request, nd_info);
     request["type"] = TCPExchange::Connect.to_string().into();
+    request.dump()
+}
+
+pub fn build_new_connection_reponse(nd_info : &NodeInfo, kbuket : &Box<Vec<NodeInfo>>) -> String {
+    let mut request = json::JsonValue::new_object();
+    _insert_node_info(&mut request, nd_info);
+    request["type"] = TCPExchange::RespConnect.to_string().into();
+    request["kbucket"] = json::JsonValue::new_array();
+    for node in kbuket.iter() {
+        let mut node_json = json::JsonValue::new_object();
+        _insert_node_info(&mut node_json, node);
+        request["kbucket"].push(node_json).unwrap();
+    }
+    request.dump()
+}
+
+pub fn build_notify_request(nd_info : &NodeInfo, new_nd_info:&NodeInfo ) -> String {
+    let mut request = json::JsonValue::new_object();
+    _insert_node_info(&mut request, nd_info);
+    request["type"] = TCPExchange::Notify.to_string().into();
+    request["new_node"] = json::JsonValue::new_object();
+    _insert_node_info(&mut request["new_node"], new_nd_info);
     request.dump()
 }
